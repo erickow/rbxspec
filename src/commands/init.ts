@@ -55,7 +55,7 @@ Fill in the real commands used in this repo:
 export interface InitOptions {
   cwd?: string;
   yes?: boolean;
-  agents?: string[];
+  agents?: string | string[];
   promptFn?: PromptFn;
 }
 
@@ -83,7 +83,14 @@ export async function initCommand(options: InitOptions = {}) {
   let selectedAgents: string[] = [];
 
   if (options.yes || options.agents) {
-    const requested = options.agents || existingAgents;
+    let requested: string[];
+    if (typeof options.agents === 'string') {
+      requested = options.agents.split(',').map((a) => a.trim()).filter(Boolean);
+    } else if (Array.isArray(options.agents)) {
+      requested = options.agents;
+    } else {
+      requested = existingAgents;
+    }
     if (!requested || requested.length === 0) {
       console.log(chalk.yellow('--yes requires --agents. Example: rbxspec --yes --agents opencode,cursor'));
       return;

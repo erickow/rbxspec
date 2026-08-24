@@ -47,6 +47,14 @@
     "type": "git",
     "url": "git+https://github.com/erickow/rbxspec.git"
   },
+  "bugs": {
+    "url": "https://github.com/erickow/rbxspec/issues"
+  },
+  "homepage": "https://github.com/erickow/rbxspec#readme",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "files": [
     "dist"
   ]
