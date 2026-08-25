@@ -1,6 +1,6 @@
 {
   "name": "rbxspec",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "rbxspec is the smallest spec-driven development toolkit for Roblox games, solo devs, and AI agents",
   "main": "dist/index.js",
   "scripts": {
