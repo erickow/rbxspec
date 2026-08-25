@@ -16,6 +16,9 @@ When asked to /rbxspec.plan, create a feature-spec directory from a PRD in 2 pha
    - data model details: DataStore keys and schemas, session-only vs persistent state, versioning and migration
    - remote contracts when networking exists: name, kind (RemoteEvent or RemoteFunction), direction, payload shape, server-side validation strategy
    - input bindings per platform when gameplay work exists (PC keybinds, mobile buttons, console pad)
+   - world scope when the PRD has a `## World` section: terrain treatment per zone, landmark and spawn placement, terrain collision and StreamingEnabled impact, part/memory budget
+   - asset sourcing when props, models, or audio are needed: whether to search Creator Store candidates or build from primitives, and who approves third-party assets
+   - story delivery when the PRD has a `## Story` section: where narrative content lives (dialogue data modules, quest configs, signage parts)
    - UI states and instance paths when UI work exists
    - unit test expectations: framework available (Lune, TestEZ, Jest-Lua) and what to cover
    - E2E verification artifact type: Studio MCP playtest checklist vs scripted check (ask whether Studio MCP is connected; if not, plan a scripted fallback)
@@ -132,9 +135,38 @@ feature_ref: F01
 | Mobile | FireButton | Shoot |
 | Console | RT | Shoot |
 
-Omit any subsection (Data, Remotes, UI, Controls) that does not apply. Do not write "Not applicable".
+### World
+Include when the PRD has a `## World` section.
+
+| Zone | Terrain treatment | Purpose |
+|------|-------------------|---------|
+| Outpost | flat concrete parts, spawn pad | hub and onboarding |
+| Wilds | smooth-terrain hills with grass material | exploration combat |
+
+### Assets
+Include when the feature needs props, models, decals, or audio.
+
+| Name | Source | ID / Link | Approval |
+|------|--------|-----------|----------|
+| Supply crate | creator-store | [1234567890](https://create.roblox.com/store/asset/1234567890) | approved via `crate_asset` decision |
+| Docks set | builtbybit | [harbor-docks](https://builtbybit.com/resources/harbor-docks.12345/) | approved via `docks_asset` decision |
+| Watchtower | primitives | built in-spec | n/a |
+
+Omit any subsection (Data, Remotes, UI, Controls, World, Assets) that does not apply. Do not write "Not applicable".
 
 Every Remotes row must include a concrete server-side validation approach. Clients never decide gameplay outcomes.
+
+### Asset Sourcing Gate (Creator Store & BuiltByBit)
+
+When the PRD's asset sourcing policy allows store assets, run this gate before writing the Assets table:
+
+1. Search two marketplaces for free candidates per prop slot (models, meshes, decals, audio):
+   - Roblox Creator Store (`create.roblox.com/store`) — inserted by asset id
+   - BuiltByBit free Roblox resources (`https://builtbybit.com/resources/categories/31/?type=free`) — downloaded files imported into Studio; prefer listings marked DRM-free, open-source, or unobfuscated, and follow each resource's license terms
+2. Shortlist up to 3 candidates per slot. Record name, creator, and a direct link — `https://create.roblox.com/store/asset/<id>` for Creator Store, `https://builtbybit.com/resources/<slug>.<id>/` for BuiltByBit.
+3. Turn every slot into a `decision` block whose options are the candidates from both marketplaces plus a "Build from primitives" fallback. Each option carries the raw link as its `value` and repeats the link in its label/description, so workers render a clickable selection and the user can open each page, inspect the asset manually, and click their choice before anything is applied.
+4. Only an approved decision value authorizes use. A rejected or unanswered slot falls back to primitives-built parts — never leave an unapproved asset id or marketplace link in an action.
+5. Plan script hygiene: marketplace-sourced models get their bundled Scripts stripped before touching Workspace; note poly count / size against the performance budget.
 
 ## Files
 | Action | Path | Description |
@@ -197,6 +229,23 @@ options:
 allow_other: true
 ```
 
+Asset decisions embed the marketplace links so the user can inspect each candidate before choosing:
+
+```decision
+id: crate_asset
+question: "Which supply crate asset? Open each link to inspect it before choosing."
+options:
+  - label: "Wooden crate — Creator Store"
+    value: https://create.roblox.com/store/asset/1234567890
+  - label: "Crate pack — BuiltByBit (free)"
+    value: https://builtbybit.com/resources/wooden-crate-pack.246810/
+  - label: "Build from primitives instead"
+    value: primitives
+allow_other: true
+other_normalize:
+  to: raw
+```
+
 ## Validates
 
 Write one `validate` block per verification check. Each validate has:
@@ -239,6 +288,7 @@ type: e2e
 Every plan must define its e2e artifact:
 - Gameplay or server work: a `studio_playtest` validate covering the full loop (join → act → verify replication/persistence), or a Lune script that simulates the flow headlessly when Studio MCP is unavailable
 - UI work: a `studio_playtest` validate that exercises every UI state listed in the Contracts table
+- World or terrain work: a `studio_playtest` validate that walks spawn → landmark → zone boundary and confirms collision, spawn placement, and StreamingEnabled behavior
 - Pure utility or data code with no runtime dependency: the smallest runnable script (e.g., `lune run verify-rewards`) is acceptable
 
 If Studio MCP is unavailable, plan the scripted fallback in the e2e validate itself. Never leave a spec without any e2e verification.
@@ -334,6 +384,7 @@ The `evidence` field maps validate block ids to brief evidence summaries (e.g., 
 15. Registry rows must match real files exactly (id, filename, title).
 16. Update PRD `## Features` from [INITIALIZED] to [PLANNED].
 17. MVP first: every feature listed in the PRD `## MVP` section must be delivered by lower-numbered specs than any non-MVP feature; record the MVP boundary (last MVP spec id) in Notes.
+18. Store assets enter specs only through an approved decision: every Assets row with `creator-store` or `builtbybit` source must trace to a decision id recorded in its Approval column, and slots without approval fall back to primitives.
 
 ### Save-Time Checklist
 
@@ -349,6 +400,8 @@ Before returning, verify ALL:
 - [ ] Every decision has a unique id, a question, and at least 2 options
 - [ ] Every Remotes row has all 5 columns including server-side validation
 - [ ] Every Controls row has all 3 columns
+- [ ] Every World row has all 3 columns
+- [ ] Every Assets row has all 4 columns including Approval, and every `creator-store` row traces to a decision id
 - [ ] Every Files row has action|path|description
 - [ ] Every spec with gameplay or UI work has at least one e2e validate of type `e2e`
 - [ ] Registry delivers every PRD `## MVP` feature before any non-MVP spec

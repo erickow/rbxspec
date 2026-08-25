@@ -76,6 +76,19 @@ describe('prompt content', () => {
     expect(spec.content).toMatch(/playable end-to-end on its own/);
   });
 
+  it('spec prompt captures world building, asset sourcing policy, and story detail', () => {
+    const spec = getTemplates('opencode').find((t) => t.file === 'rbxspec.spec.md')!;
+    expect(spec.content).toContain('## World');
+    expect(spec.content).toContain('- Terrain:');
+    expect(spec.content).toContain('- Zones:');
+    expect(spec.content).toContain('- Landmarks:');
+    expect(spec.content).toContain('- Asset sourcing:');
+    expect(spec.content).toContain('## Story');
+    expect(spec.content).toContain('- Detail level:');
+    expect(spec.content).toMatch(/Creator Store/i);
+    expect(spec.content).toMatch(/BuiltByBit/i);
+  });
+
   it('plan prompt defines Roblox contract tables and studio playtest artifact', () => {
     const plan = getTemplates('opencode').find((t) => t.file === 'rbxspec.plan.md')!;
     expect(plan.content).toContain('### Remotes');
@@ -85,6 +98,21 @@ describe('prompt content', () => {
     expect(plan.content).toContain('studio_playtest');
     expect(plan.content).toContain('| Name | Kind | Direction | Payload | Validation |');
     expect(plan.content).toMatch(/lune|TestEZ|Jest-Lua/);
+  });
+
+  it('plan prompt gates store assets behind per-asset user approval', () => {
+    const plan = getTemplates('opencode').find((t) => t.file === 'rbxspec.plan.md')!;
+    expect(plan.content).toContain('### World');
+    expect(plan.content).toContain('| Zone | Terrain treatment | Purpose |');
+    expect(plan.content).toContain('### Assets');
+    expect(plan.content).toContain('| ID / Link | Approval |');
+    expect(plan.content).toMatch(/create\.roblox\.com\/store\/asset\//);
+    expect(plan.content).toMatch(/builtbybit\.com\/resources\//);
+    expect(plan.content).toContain('Asset Sourcing Gate (Creator Store & BuiltByBit)');
+    expect(plan.content).toMatch(/\?type=free/);
+    expect(plan.content).toContain('never leave an unapproved asset id or marketplace link in an action');
+    expect(plan.content).toMatch(/repeats the link in its label\/description/);
+    expect(plan.content).toMatch(/walks spawn → landmark → zone boundary/);
   });
 
   it('plan prompt sequences MVP features first', () => {
@@ -102,10 +130,27 @@ describe('prompt content', () => {
     expect(impl.content).toContain('Return Contract');
   });
 
+  it('implement prompt renders asset links and audits inserted assets', () => {
+    const impl = getTemplates('opencode').find((t) => t.file === 'rbxspec.implement.md')!;
+    expect(impl.content).toContain('Asset Decisions (Creator Store & BuiltByBit)');
+    expect(impl.content).toMatch(/directly clickable/);
+    expect(impl.content).toMatch(/interactive selection/);
+    expect(impl.content).toContain('Never preselect, guess, auto-resolve, or time out an asset decision');
+    expect(impl.content).toMatch(/strip any bundled Scripts/);
+    expect(impl.content).toContain('no store asset present that lacks an approved decision');
+  });
+
   it('audit prompt checks Controls rows and MVP ordering parity', () => {
     const audit = getTemplates('opencode').find((t) => t.file === 'rbxspec.audit.md')!;
     expect(audit.content).toMatch(/every Controls contract row has all 3 columns/);
     expect(audit.content).toMatch(/Registry order delivers every PRD `## MVP` feature/);
+  });
+
+  it('audit prompt checks World and Assets contract rows', () => {
+    const audit = getTemplates('opencode').find((t) => t.file === 'rbxspec.audit.md')!;
+    expect(audit.content).toMatch(/every World contract row has all 3 columns/);
+    expect(audit.content).toMatch(/every Assets contract row has all 4 columns including Approval/);
+    expect(audit.content).toMatch(/creator-store`, `builtbybit/);
   });
 
   it('debug prompt checks stale builds before debugging code', () => {
@@ -128,6 +173,14 @@ describe('persona depth', () => {
     expect(gd).toMatch(/vertical slice/i);
   });
 
+  it('game designer embeds world building and store-asset approval doctrine', () => {
+    const gd = persona('rbxspec-gd');
+    expect(gd).toMatch(/terrain approach/);
+    expect(gd).toMatch(/asset sourcing policy/i);
+    expect(gd).toMatch(/story detail level/i);
+    expect(gd).toMatch(/approve each one before insertion/i);
+  });
+
   it('tech lead embeds remote selection and persistence versioning doctrine', () => {
     const tl = persona('rbxspec-tl');
     expect(tl).toContain('UnreliableRemoteEvent');
@@ -135,6 +188,14 @@ describe('persona depth', () => {
     expect(tl).toMatch(/schema version/);
     expect(tl).toMatch(/MemoryStore/);
     expect(tl).toMatch(/BindToClose/);
+  });
+
+  it('tech lead embeds the creator store asset pipeline doctrine', () => {
+    const tl = persona('rbxspec-tl');
+    expect(tl).toMatch(/per-asset human approval|approves by clicking/i);
+    expect(tl).toMatch(/Creator Store and BuiltByBit/);
+    expect(tl).toMatch(/primitives fallback/i);
+    expect(tl).toMatch(/strip bundled scripts/i);
   });
 
   it('engineer embeds Luau idioms, resource hygiene, and security rules', () => {

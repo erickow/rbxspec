@@ -62,10 +62,10 @@ Use `/rbxspec.spec` to draft a PRD:
 ```
 
 - The agent reads project context first, including `.rbxspec/CONTEXT.md` when present.
-- It asks 5-10 focused questions before drafting, covering player outcome, core loop flow, edge cases (latency, disconnects, DataStore failures, exploit abuse, platform variance), data contracts (DataStore schema, remotes), constraints, and verification.
+- It asks 5-10 focused questions before drafting, covering player outcome, core loop flow, world building (terrain approach, zones, landmarks, art direction), asset sourcing policy, story detail level, edge cases (latency, disconnects, DataStore failures, exploit abuse, platform variance), data contracts (DataStore schema, remotes), constraints, and verification.
 - After you answer, the full PRD is written in one pass to `.rbxspec/specs/<epoch-ms>-<slug>.md`.
 
-The PRD uses a structured format with stable IDs: `AC-*` acceptance criteria, `EC-*` edge cases (`→` cause-effect syntax), and `F-*` features.
+The PRD uses a structured format with stable IDs: `AC-*` acceptance criteria, `EC-*` edge cases (`→` cause-effect syntax), and `F-*` features. When relevant it also carries an `## Experience` block (audience, platforms, server size, R6/R15, genre), optional `## World` (terrain, zones, landmarks, art direction, asset sourcing policy) and `## Story` (premise, detail level) blocks, plus an `## MVP` slice.
 
 ### Step 3: Create a Feature Spec Directory
 
@@ -86,9 +86,12 @@ Each feature spec contains typed sections adapted for games:
   - **Data**: DataStore schemas, session state, Attributes
   - **Remotes**: `Name | Kind | Direction | Payload | Validation` — every remote gets an explicit server-side validation approach
   - **UI**: states with display and instance paths
+  - **Controls**: platform → input → action bindings
+  - **World** (when the PRD has one): zone → terrain treatment → purpose
+  - **Assets** (when props/models/audio are needed): name, source (`creator-store` | `builtbybit` | `primitives`), ID/link, approval
 - `## Files` — create/modify/reference actions with paths under `src/client`, `src/server`, `src/shared`
 - `## Actions` — executable steps with dependencies
-- `## Decisions` — structured choice points (e.g., raw DataStoreService vs session-locking)
+- `## Decisions` — structured choice points (e.g., raw DataStoreService vs session-locking); asset choices embed clickable marketplace links
 - `## Validates` — base (unit) → edges → e2e checks; e2e uses `studio_playtest` (Roblox Studio MCP) or a scripted fallback such as `lune run verify-x`
 - `## Done` — checklist that must be ticked with evidence
 
@@ -120,6 +123,17 @@ Use `/rbxspec.debug` for failures or regressions:
 - It verifies the build is current first (stale Rojo output is the most common false bug).
 - It reproduces with a failing unit test or a Studio MCP playtest.
 - For networking bugs it walks the boundary order: client send → server validate → server mutate → replication → client observe.
+
+## Asset Sourcing
+
+When a PRD allows store assets, `/rbxspec.plan` runs an **Asset Sourcing Gate**:
+
+- It shortlists free candidates per prop slot from two marketplaces:
+  - [Roblox Creator Store](https://create.roblox.com/store) — inserted by asset id
+  - [BuiltByBit](https://builtbybit.com/) (free Roblox resources, DRM-free / open-source preferred) — downloaded files imported into Studio
+- Each candidate becomes a clickable option in an interactive selection. Open the link, inspect the asset manually, and click your choice — nothing is applied without your explicit per-asset approval.
+- Slots you reject or leave unanswered fall back to primitives built from parts.
+- Workers strip bundled Scripts from approved marketplace models before they touch Workspace, and implementation rejects any unapproved store asset found in the place.
 
 ## Directory Structure
 
@@ -154,9 +168,10 @@ your-game/
 
 `robloxui init` scaffolds a Roblox-TS or Luau/Wally project pre-wired with Rojo, a pinned toolchain, and the Roblox Studio MCP server — everything rbxspec's playtest verification needs. Offer rbxspec during init or run `npx rbxspec@latest` afterwards.
 
-## Credits
+## Attribution
 
-Built on the architecture of [pspec](https://github.com/rzkmak/pspec) by rzkmak, specialized for Roblox development.
+- Built on the architecture of [pspec](https://github.com/rzkmak/pspec) by rzkmak, specialized for Roblox development.
+- Asset recommendations are sourced from the [Roblox Creator Store](https://create.roblox.com/store) and [BuiltByBit](https://builtbybit.com/). rbxspec does not host or redistribute these assets; all listings remain the property of their creators. Review and follow each marketplace's terms and each resource's license before using it in your experience.
 
 ## License
 

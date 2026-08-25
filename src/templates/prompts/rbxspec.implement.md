@@ -212,8 +212,21 @@ For each `decision` block in document order:
         - `slug`: lowercase, replace non-[a-z0-9] with hyphens, strip leading/trailing hyphens, collapse consecutive hyphens
         - `lower`: lowercase only
         - `raw`: no transformation
-     f. Store normalized value in `state.decisions[decision.id]`
+      f. Store normalized value in `state.decisions[decision.id]`
 5. Write the updated state block back to the feature spec file.
+
+### Asset Decisions (Creator Store & BuiltByBit)
+
+When a `decision` block's options contain marketplace links:
+
+1. First render the full candidate list in your reply so every link is directly clickable: one line per candidate with name, marketplace, creator, and the raw URL. Do not summarize over the links or shorten URLs.
+2. Then present the choice with the `ask_user` tool as an interactive selection: exactly one clickable option per candidate (asset name plus its link in the option label/description) plus a "Build from primitives" fallback option. The user picks only after opening and inspecting the links.
+3. Never preselect, guess, auto-resolve, or time out an asset decision. Wait for the explicit click.
+4. If the resolved value is a Creator Store URL: extract the asset id from the link and insert that exact id via Studio MCP.
+5. If the resolved value is a BuiltByBit URL: download the resource per its listing, import the file into the place via Studio MCP, and follow the listing's install notes.
+6. Either way, strip any bundled Scripts from the sourced model before parenting it into Workspace, and verify it matches the Assets contract row.
+7. If the resolved value is `primitives`: build the prop from primitive parts per the spec instead of fetching anything.
+8. Record what was inserted (asset id, resource link, or primitives) in `state.artifacts` under the decision id.
 
 ### W1 - Load
 
@@ -266,6 +279,7 @@ Gate: all actions executed or skipped, no abort-level failures.
     - every Remotes contract (name, kind, direction, payload, validation) is implemented exactly, and server-side payload validation exists for every remote
     - every UI contract (state, display, instance path) is present in code
     - every Controls contract (platform, input, action) has a binding implemented
+    - every Assets contract row is honored: approved store/marketplace ids or resources inserted exactly as linked, primitives slots built from parts, and no store asset present that lacks an approved decision
     - every verification artifact exists
     - every spec_ref ID is addressed
 17. If any file in the Files table does not exist, or any contract does not match, report the mismatch as a failure and do not proceed to W5. Fix the issue first, then re-audit.
@@ -294,7 +308,7 @@ Gate: all planned files and contracts match spec. No mismatches remain.
 Review passes:
 - TRIVIAL: 1 full pass
 - CRITICAL: 2 full passes
-- Each pass checks: base case, edges, no skipped steps, no TODO/FIXME, Data contracts match, remote payloads validated on the server, UI instance paths match Contracts, input bindings match Controls.
+- Each pass checks: base case, edges, no skipped steps, no TODO/FIXME, Data contracts match, remote payloads validated on the server, UI instance paths match Contracts, input bindings match Controls, Assets rows match inserted instances.
 
 Gate: all validates pass, all review passes complete.
 

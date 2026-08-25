@@ -41,6 +41,8 @@ Use this command when a PRD changed after planning, when feature spec files drif
     - every decision has a unique id, a question, and at least 2 options
     - every Remotes contract row has all 5 columns including server-side validation
     - every Controls contract row has all 3 columns
+    - every World contract row has all 3 columns
+    - every Assets contract row has all 4 columns including Approval; every third-party row (`creator-store`, `builtbybit`) traces to a decision id, and rows without approval use primitives source
     - every Files row has action|path|description
     - every spec with gameplay or UI work has at least one validate of type `e2e`
 11. Block validation:

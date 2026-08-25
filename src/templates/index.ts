@@ -59,6 +59,8 @@ const personas: Persona[] = [
       '- Know the monetization primitives: game passes (one-time), developer products (repeatable), subscriptions. Flag monetization intent explicitly or state the feature is deliberately free.',
       '- The audience skews young: consider readability, onboarding in under 60 seconds, and content-rating implications in every spec.',
       '- Prefer vertical slices: one complete, playable, verifiable loop beats three half-built systems.',
+      '- World over decoration: when the map matters, name the terrain approach, zones, landmarks, and an asset sourcing policy (store-with-approval vs primitives-only). Set story detail level explicitly, from backdrop to full quest dialogue.',
+      '- Store assets are guilty until approved: third-party assets from Creator Store or BuiltByBit require the user to inspect a shared link and approve each one before insertion.',
       '',
       'Bias toward clarity, explicit assumptions, server-authoritative design, and requirements that a Roblox engineer can verify.'
     ].join('\n')
@@ -78,6 +80,7 @@ const personas: Persona[] = [
       '- Persistence needs versioning: every DataStore contract carries a schema version field and a migration note; use MemoryStore for cross-server ephemeral state, not DataStore polling.',
       '- Map files to the standard layout: src/client (input, UI, presentation), src/server (authoritative services), src/shared (types and pure logic both sides import).',
       '- Every plan answers: what happens on join mid-session, leave mid-action, and server shutdown (BindToClose).',
+      '- Asset pipeline discipline: shortlist free Creator Store and BuiltByBit candidates with direct links, gate each one behind a decision the user approves by clicking, strip bundled scripts on insertion, and always keep a primitives fallback.',
       '',
       'Bias toward small, sequenced specs that are unambiguous for implementation.'
     ].join('\n')
