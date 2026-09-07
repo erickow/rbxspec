@@ -62,10 +62,10 @@ Use `/rbxspec.spec` to draft a PRD:
 ```
 
 - The agent reads project context first, including `.rbxspec/CONTEXT.md` when present.
-- It asks 5-10 focused questions before drafting, covering player outcome, core loop flow, world building (terrain approach, zones, landmarks, art direction), asset sourcing policy, story detail level, edge cases (latency, disconnects, DataStore failures, exploit abuse, platform variance), data contracts (DataStore schema, remotes), constraints, and verification.
+- It asks 5-10 focused questions before drafting, covering player outcome, core loop flow, world building (terrain approach, zones, landmarks, art direction), asset sourcing policy (store assets, Blender-generated meshes, or primitives), story detail level, edge cases (latency, disconnects, DataStore failures, exploit abuse, platform variance), data contracts (DataStore schema, remotes), constraints, and verification.
 - After you answer, the full PRD is written in one pass to `.rbxspec/specs/<epoch-ms>-<slug>.md`.
 
-The PRD uses a structured format with stable IDs: `AC-*` acceptance criteria, `EC-*` edge cases (`→` cause-effect syntax), and `F-*` features. When relevant it also carries an `## Experience` block (audience, platforms, server size, R6/R15, genre), optional `## World` (terrain, zones, landmarks, art direction, asset sourcing policy) and `## Story` (premise, detail level) blocks, plus an `## MVP` slice.
+The PRD uses a structured format with stable IDs: `AC-*` acceptance criteria, `EC-*` edge cases (`→` cause-effect syntax), and `F-*` features. When relevant it also carries an `## Experience` block (audience, platforms, server size, R6/R15, genre), optional `## World` (terrain, zones, landmarks, art direction, asset sourcing policy: `store-with-approval | blender-mcp | primitives-only | mixed`) and `## Story` (premise, detail level) blocks, plus an `## MVP` slice.
 
 ### Step 3: Create a Feature Spec Directory
 
@@ -88,10 +88,10 @@ Each feature spec contains typed sections adapted for games:
   - **UI**: states with display and instance paths
   - **Controls**: platform → input → action bindings
   - **World** (when the PRD has one): zone → terrain treatment → purpose
-  - **Assets** (when props/models/audio are needed): name, source (`creator-store` | `builtbybit` | `primitives`), ID/link, approval
+  - **Assets** (when props/models/audio are needed): name, source (`creator-store` | `builtbybit` | `blender-mcp` | `primitives`), ID/link, approval — every generated row also carries a **Generation Brief** (dimensions in studs, poly budget, pivot, collision, style, texture plan)
 - `## Files` — create/modify/reference actions with paths under `src/client`, `src/server`, `src/shared`
 - `## Actions` — executable steps with dependencies
-- `## Decisions` — structured choice points (e.g., raw DataStoreService vs session-locking); asset choices embed clickable marketplace links
+- `## Decisions` — structured choice points (e.g., raw DataStoreService vs session-locking); store-asset choices embed clickable marketplace links, while Blender-generated slots need no decision at all
 - `## Validates` — base (unit) → edges → e2e checks; e2e uses `studio_playtest` (Roblox Studio MCP) or a scripted fallback such as `lune run verify-x`
 - `## Done` — checklist that must be ticked with evidence
 
@@ -126,14 +126,27 @@ Use `/rbxspec.debug` for failures or regressions:
 
 ## Asset Sourcing
 
-When a PRD allows store assets, `/rbxspec.plan` runs an **Asset Sourcing Gate**:
+Asset sourcing follows a three-tier ladder, chosen per project in the PRD's asset sourcing policy (`store-with-approval | blender-mcp | primitives-only | mixed`).
+
+### Store Assets (Creator Store & BuiltByBit)
+
+When the policy allows store assets, `/rbxspec.plan` runs an **Asset Sourcing Gate**:
 
 - It shortlists free candidates per prop slot from two marketplaces:
   - [Roblox Creator Store](https://create.roblox.com/store) — inserted by asset id
   - [BuiltByBit](https://builtbybit.com/) (free Roblox resources, DRM-free / open-source preferred) — downloaded files imported into Studio
 - Each candidate becomes a clickable option in an interactive selection. Open the link, inspect the asset manually, and click your choice — nothing is applied without your explicit per-asset approval.
-- Slots you reject or leave unanswered fall back to primitives built from parts.
+- Slots you reject or leave unanswered fall down the ladder: Blender generation when offered, otherwise primitives.
 - Workers strip bundled Scripts from approved marketplace models before they touch Workspace, and implementation rejects any unapproved store asset found in the place.
+
+### Blender-Generated Assets
+
+When the policy is `blender-mcp` or `mixed`, props can be modeled from scratch via your [Blender MCP](https://github.com/ahujasid/blender-mcp) connection. This tier is fully hands-off:
+
+- **Naming the policy is the only approval** — no per-asset clicks, no link inspection. Generated meshes are local work with zero third-party content or license risk.
+- Quality is contract-driven: every generated slot carries a **Generation Brief** in the plan (purpose, dimensions in studs, poly budget, pivot, collision fidelity, style & palette, texture plan), and the implement worker follows a fixed **Blender Generation Standard** (stud-exact proportions, applied transforms, bottom-center pivot, tri-count ceilings, shading and naming rules).
+- Delivery is **Rojo-first** and automatic: Blender MCP exports FBX → Open Cloud upload mints an asset id (one-time `ROBLOX_API_KEY` setup via env or `.rbxspec/.env`) → a generated `.rbxm` binds the id as a `MeshPart` → Rojo syncs it into the place. Without Rojo wiring, the worker inserts via Studio MCP instead.
+- If Blender MCP is unavailable, the brief is missing, or generation fails, the slot falls back to primitives — never a false pass.
 
 ## Directory Structure
 
@@ -171,7 +184,7 @@ your-game/
 ## Attribution
 
 - Built on the architecture of [pspec](https://github.com/rzkmak/pspec) by rzkmak, specialized for Roblox development.
-- Asset recommendations are sourced from the [Roblox Creator Store](https://create.roblox.com/store) and [BuiltByBit](https://builtbybit.com/). rbxspec does not host or redistribute these assets; all listings remain the property of their creators. Review and follow each marketplace's terms and each resource's license before using it in your experience.
+- Asset recommendations are sourced from the [Roblox Creator Store](https://create.roblox.com/store) and [BuiltByBit](https://builtbybit.com/). rbxspec does not host or redistribute these assets; all listings remain the property of their creators. Review and follow each marketplace's terms and each resource's license before using it in your experience. Blender-generated meshes are authored locally in your own Blender session and are not redistributed by rbxspec.
 
 ## License
 
