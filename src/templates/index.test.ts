@@ -87,6 +87,8 @@ describe('prompt content', () => {
     expect(spec.content).toContain('- Detail level:');
     expect(spec.content).toMatch(/Creator Store/i);
     expect(spec.content).toMatch(/BuiltByBit/i);
+    expect(spec.content).toMatch(/blender-mcp/);
+    expect(spec.content).toMatch(/Blender MCP/i);
   });
 
   it('plan prompt defines Roblox contract tables and studio playtest artifact', () => {
@@ -108,10 +110,17 @@ describe('prompt content', () => {
     expect(plan.content).toContain('| ID / Link | Approval |');
     expect(plan.content).toMatch(/create\.roblox\.com\/store\/asset\//);
     expect(plan.content).toMatch(/builtbybit\.com\/resources\//);
-    expect(plan.content).toContain('Asset Sourcing Gate (Creator Store & BuiltByBit)');
+    expect(plan.content).toContain('Asset Sourcing Gate (Creator Store, BuiltByBit & Blender)');
     expect(plan.content).toMatch(/\?type=free/);
     expect(plan.content).toContain('never leave an unapproved asset id or marketplace link in an action');
     expect(plan.content).toMatch(/repeats the link in its label\/description/);
+    expect(plan.content).toContain('Generate with Blender MCP');
+    expect(plan.content).toMatch(/falls down the ladder/);
+    expect(plan.content).toMatch(/blender-mcp/);
+    expect(plan.content).toMatch(/The policy is the approval/);
+    expect(plan.content).toContain('Blender Generation Briefs');
+    expect(plan.content).toMatch(/rojo serve\*/);
+    expect(plan.content).toMatch(/approved by sourcing policy/);
     expect(plan.content).toMatch(/walks spawn → landmark → zone boundary/);
   });
 
@@ -132,12 +141,20 @@ describe('prompt content', () => {
 
   it('implement prompt renders asset links and audits inserted assets', () => {
     const impl = getTemplates('opencode').find((t) => t.file === 'rbxspec.implement.md')!;
-    expect(impl.content).toContain('Asset Decisions (Creator Store & BuiltByBit)');
+    expect(impl.content).toContain('Asset Decisions (Creator Store, BuiltByBit & Blender)');
     expect(impl.content).toMatch(/directly clickable/);
     expect(impl.content).toMatch(/interactive selection/);
     expect(impl.content).toContain('Never preselect, guess, auto-resolve, or time out an asset decision');
     expect(impl.content).toMatch(/strip any bundled Scripts/);
     expect(impl.content).toContain('no store asset present that lacks an approved decision');
+    expect(impl.content).toMatch(/Blender MCP server/);
+    expect(impl.content).toContain('Blender Generation Standard');
+    expect(impl.content).toMatch(/no further user confirmation is needed/);
+    expect(impl.content).toMatch(/ROBLOX_API_KEY/);
+    expect(impl.content).toMatch(/Open Cloud/);
+    expect(impl.content).toMatch(/Rojo-first/);
+    expect(impl.content).toMatch(/fall back to primitives and record/);
+    expect(impl.content).toMatch(/provenance in `state\.artifacts`/);
   });
 
   it('audit prompt checks Controls rows and MVP ordering parity', () => {
@@ -151,6 +168,8 @@ describe('prompt content', () => {
     expect(audit.content).toMatch(/every World contract row has all 3 columns/);
     expect(audit.content).toMatch(/every Assets contract row has all 4 columns including Approval/);
     expect(audit.content).toMatch(/creator-store`, `builtbybit/);
+    expect(audit.content).toMatch(/blender-mcp/);
+    expect(audit.content).toMatch(/Generation Brief/);
   });
 
   it('debug prompt checks stale builds before debugging code', () => {
@@ -179,6 +198,8 @@ describe('persona depth', () => {
     expect(gd).toMatch(/asset sourcing policy/i);
     expect(gd).toMatch(/story detail level/i);
     expect(gd).toMatch(/approve each one before insertion/i);
+    expect(gd).toMatch(/Blender-generated meshes/);
+    expect(gd).toMatch(/the only approval they need/);
   });
 
   it('tech lead embeds remote selection and persistence versioning doctrine', () => {
@@ -194,8 +215,11 @@ describe('persona depth', () => {
     const tl = persona('rbxspec-tl');
     expect(tl).toMatch(/per-asset human approval|approves by clicking/i);
     expect(tl).toMatch(/Creator Store and BuiltByBit/);
+    expect(tl).toMatch(/Blender MCP generation/);
     expect(tl).toMatch(/primitives fallback/i);
     expect(tl).toMatch(/strip bundled scripts/i);
+    expect(tl).toMatch(/MeshPart provenance/i);
+    expect(tl).toMatch(/Rojo-first/);
   });
 
   it('engineer embeds Luau idioms, resource hygiene, and security rules', () => {

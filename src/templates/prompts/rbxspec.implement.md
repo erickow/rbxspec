@@ -215,18 +215,40 @@ For each `decision` block in document order:
       f. Store normalized value in `state.decisions[decision.id]`
 5. Write the updated state block back to the feature spec file.
 
-### Asset Decisions (Creator Store & BuiltByBit)
+### Asset Decisions (Creator Store, BuiltByBit & Blender)
 
-When a `decision` block's options contain marketplace links:
+When a `decision` block's options contain marketplace links or a `blender-generate` value:
 
 1. First render the full candidate list in your reply so every link is directly clickable: one line per candidate with name, marketplace, creator, and the raw URL. Do not summarize over the links or shorten URLs.
-2. Then present the choice with the `ask_user` tool as an interactive selection: exactly one clickable option per candidate (asset name plus its link in the option label/description) plus a "Build from primitives" fallback option. The user picks only after opening and inspecting the links.
+2. Then present the choice with the `ask_user` tool as an interactive selection: exactly one clickable option per candidate (asset name plus its link in the option label/description) plus "Generate with Blender MCP" (when offered) and a "Build from primitives" fallback option. The user picks only after opening and inspecting the links.
 3. Never preselect, guess, auto-resolve, or time out an asset decision. Wait for the explicit click.
 4. If the resolved value is a Creator Store URL: extract the asset id from the link and insert that exact id via Studio MCP.
 5. If the resolved value is a BuiltByBit URL: download the resource per its listing, import the file into the place via Studio MCP, and follow the listing's install notes.
-6. Either way, strip any bundled Scripts from the sourced model before parenting it into Workspace, and verify it matches the Assets contract row.
-7. If the resolved value is `primitives`: build the prop from primitive parts per the spec instead of fetching anything.
-8. Record what was inserted (asset id, resource link, or primitives) in `state.artifacts` under the decision id.
+6. If the resolved value is `blender-generate`: run the Blender Generation Standard below — no further user confirmation is needed; the click above is the only gate.
+7. Either way, strip any bundled Scripts from the sourced model before parenting it into Workspace, and verify it matches the Assets contract row.
+8. If the resolved value is `primitives`: build the prop from primitive parts per the spec instead of fetching anything.
+9. Record provenance in `state.artifacts` under the decision id: the inserted asset id, the resource link, the Blender export (asset id, mesh file path, brief compliance notes), or `primitives`.
+
+`blender-mcp` Assets rows with no decision block run the Blender Generation Standard directly — the PRD sourcing policy is the approval, so no `ask_user` step happens.
+
+### Blender Generation Standard
+
+Run this standard for every generated prop. It is hands-off: if a step cannot complete without user interaction, the row fails into primitives.
+
+1. Read the row's Generation Brief from the Assets contracts. If the brief is missing or holds placeholder text, fall back to primitives and record why — never invent unspecified dimensions or budgets.
+2. Connect to the Blender MCP server. If it is unavailable after one retry, fall back to primitives and record the fallback in `state.artifacts` — never claim a generated mesh exists without the placed MeshPart in the place.
+3. Model in short MCP steps (blockout → refine → export) so no single call runs long enough to time out.
+4. Quality bar (all from the brief):
+   - Proportions match the brief's stud dimensions exactly; work at 1 Blender unit = 1 stud or apply the 0.28 m/stud scale on export.
+   - Apply all transforms before export (rotation 0, scale 1) and put the origin at the brief's pivot (default bottom-center).
+   - Stay inside the brief's poly budget (default ≤ 10k tris per prop); no n-gons on curved silhouettes, no hidden internal geometry.
+   - Flat-shade hard-surface props; smooth-shade organic forms (autosmooth ≈ 30°).
+   - Materials use the brief's palette; no bundled textures unless the brief plans them — textures upload separately and land as SurfaceAppearance.
+   - Name the final object after the Assets row, kebab-case.
+5. Export FBX (binary, apply modifiers, Y-up) to the path in the Files table (default `assets/meshes/<row-name>.fbx`).
+6. Upload with the plan's `lune run` action via Open Cloud asset import (`ROBLOX_API_KEY` from the environment or `.rbxspec/.env`) and capture the returned asset id — the id, not the local file, is the artifact.
+7. Place the mesh Rojo-first: write a `.rbxm` whose MeshPart binds MeshId to the uploaded asset id with Size in studs, CollisionFidelity, and pivot per the brief, then `rojo build` (or live sync) and confirm the instance exists in the place. Without Rojo wiring, insert the asset id via Studio MCP and set Size, CollisionFidelity, and pivot.
+8. Verify the placed MeshPart (instance tree read or playtest) and record provenance in `state.artifacts` under the row or decision id: asset id, mesh file path, tri count, pivot, collision fidelity.
 
 ### W1 - Load
 
@@ -279,7 +301,7 @@ Gate: all actions executed or skipped, no abort-level failures.
     - every Remotes contract (name, kind, direction, payload, validation) is implemented exactly, and server-side payload validation exists for every remote
     - every UI contract (state, display, instance path) is present in code
     - every Controls contract (platform, input, action) has a binding implemented
-    - every Assets contract row is honored: approved store/marketplace ids or resources inserted exactly as linked, primitives slots built from parts, and no store asset present that lacks an approved decision
+    - every Assets contract row is honored: approved store/marketplace ids or resources inserted exactly as linked, `blender-mcp` slots placed Rojo-first with MeshId bound to the uploaded asset id and provenance recorded in `state.artifacts`, primitives slots built from parts, and no store asset present that lacks an approved decision
     - every verification artifact exists
     - every spec_ref ID is addressed
 17. If any file in the Files table does not exist, or any contract does not match, report the mismatch as a failure and do not proceed to W5. Fix the issue first, then re-audit.

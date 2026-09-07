@@ -17,7 +17,7 @@ When asked to /rbxspec.plan, create a feature-spec directory from a PRD in 2 pha
    - remote contracts when networking exists: name, kind (RemoteEvent or RemoteFunction), direction, payload shape, server-side validation strategy
    - input bindings per platform when gameplay work exists (PC keybinds, mobile buttons, console pad)
    - world scope when the PRD has a `## World` section: terrain treatment per zone, landmark and spawn placement, terrain collision and StreamingEnabled impact, part/memory budget
-   - asset sourcing when props, models, or audio are needed: whether to search Creator Store candidates or build from primitives, and who approves third-party assets
+   - asset sourcing when props, models, or audio are needed: whether to search Creator Store candidates, generate custom meshes with Blender MCP, or build from primitives, and who approves third-party assets
    - story delivery when the PRD has a `## Story` section: where narrative content lives (dialogue data modules, quest configs, signage parts)
    - UI states and instance paths when UI work exists
    - unit test expectations: framework available (Lune, TestEZ, Jest-Lua) and what to cover
@@ -150,23 +150,36 @@ Include when the feature needs props, models, decals, or audio.
 |------|--------|-----------|----------|
 | Supply crate | creator-store | [1234567890](https://create.roblox.com/store/asset/1234567890) | approved via `crate_asset` decision |
 | Docks set | builtbybit | [harbor-docks](https://builtbybit.com/resources/harbor-docks.12345/) | approved via `docks_asset` decision |
-| Watchtower | primitives | built in-spec | n/a |
+| Watchtower | blender-mcp | asset id minted at implement (Open Cloud upload) | approved by sourcing policy |
+| Buoy | primitives | built in-spec | n/a |
 
 Omit any subsection (Data, Remotes, UI, Controls, World, Assets) that does not apply. Do not write "Not applicable".
 
 Every Remotes row must include a concrete server-side validation approach. Clients never decide gameplay outcomes.
 
-### Asset Sourcing Gate (Creator Store & BuiltByBit)
+### Asset Sourcing Gate (Creator Store, BuiltByBit & Blender)
 
-When the PRD's asset sourcing policy allows store assets, run this gate before writing the Assets table:
+When the PRD's asset sourcing policy allows store assets or Blender-generated meshes, run this gate before writing the Assets table:
 
-1. Search two marketplaces for free candidates per prop slot (models, meshes, decals, audio):
-   - Roblox Creator Store (`create.roblox.com/store`) — inserted by asset id
-   - BuiltByBit free Roblox resources (`https://builtbybit.com/resources/categories/31/?type=free`) — downloaded files imported into Studio; prefer listings marked DRM-free, open-source, or unobfuscated, and follow each resource's license terms
-2. Shortlist up to 3 candidates per slot. Record name, creator, and a direct link — `https://create.roblox.com/store/asset/<id>` for Creator Store, `https://builtbybit.com/resources/<slug>.<id>/` for BuiltByBit.
-3. Turn every slot into a `decision` block whose options are the candidates from both marketplaces plus a "Build from primitives" fallback. Each option carries the raw link as its `value` and repeats the link in its label/description, so workers render a clickable selection and the user can open each page, inspect the asset manually, and click their choice before anything is applied.
-4. Only an approved decision value authorizes use. A rejected or unanswered slot falls back to primitives-built parts — never leave an unapproved asset id or marketplace link in an action.
-5. Plan script hygiene: marketplace-sourced models get their bundled Scripts stripped before touching Workspace; note poly count / size against the performance budget.
+1. Establish the sourcing ladder per prop slot (models, meshes, decals, audio), in order:
+   - Store candidates: Roblox Creator Store (`create.roblox.com/store`) — inserted by asset id; BuiltByBit free Roblox resources (`https://builtbybit.com/resources/categories/31/?type=free`) — downloaded files imported into Studio; prefer listings marked DRM-free, open-source, or unobfuscated, and follow each resource's license terms
+   - Blender generation: model the prop from scratch via Blender MCP — carries no third-party content risk; plan this tier when the sourcing policy is `blender-mcp` or `mixed` and Blender MCP is connected. The policy is the approval: a slot planned as generated needs no per-asset decision; add a decision block only when a slot could be either store-sourced or generated
+   - Primitives: build from basic parts in-spec; always the final fallback
+2. Shortlist up to 3 store candidates per mixed slot. Record name, creator, and a direct link — `https://create.roblox.com/store/asset/<id>` for Creator Store, `https://builtbybit.com/resources/<slug>.<id>/` for BuiltByBit.
+3. Turn mixed slots into a `decision` block whose options are the store candidates plus "Generate with Blender MCP" plus a "Build from primitives" fallback. Each store option carries the raw link as its `value` and repeats the link in its label/description, so workers render a clickable selection and the user can open each page, inspect the asset manually, and click their choice before anything is applied. Slots planned as generated skip the decision entirely.
+4. Only an approved value authorizes store use. A rejected or unanswered slot falls down the ladder — Blender generation when offered, otherwise primitives-built parts — never leave an unapproved asset id or marketplace link in an action.
+5. Plan script hygiene and mesh budget: marketplace-sourced models get their bundled Scripts stripped before touching Workspace; note poly count / size against the performance budget.
+6. For every generated slot, plan the full hands-off pipeline as actions: Blender MCP model + FBX/OBJ export → Open Cloud upload via `lune run` (mints the asset id) → generated `.rbxm` artifact whose MeshPart binds that id → Rojo sync into the place. When the project has no Rojo wiring, plan a Studio MCP insert-by-id action instead.
+
+### Blender Generation Briefs
+
+Every `blender-mcp` Assets row must carry a brief — the quality contract the implement worker feeds the Blender MCP. Write it directly under the Assets table:
+
+| Row | Purpose | Dimensions (studs) | Poly budget | Pivot | Collision | Style & palette | Texture plan |
+|-----|---------|--------------------|-------------|-------|-----------|-----------------|--------------|
+| Watchtower | zone landmark | 12×30×12 | 8k tris | bottom-center | Box | weathered wood, PRD art palette | vertex color |
+
+Rules: dimensions are in studs (1 stud ≈ 0.28 m) and match the World plan's scale; poly budget respects the performance budget (default ≤ 10k tris per prop); pivot is bottom-center unless the row says otherwise; style references the PRD `## World` art direction; texture plan is vertex color or named SurfaceAppearance images. No placeholder values.
 
 ## Files
 | Action | Path | Description |
@@ -239,6 +252,8 @@ options:
     value: https://create.roblox.com/store/asset/1234567890
   - label: "Crate pack — BuiltByBit (free)"
     value: https://builtbybit.com/resources/wooden-crate-pack.246810/
+  - label: "Generate with Blender MCP"
+    value: blender-generate
   - label: "Build from primitives instead"
     value: primitives
 allow_other: true
@@ -311,6 +326,7 @@ safe-commands:
     - "npm test*"
     - "npx tsc*"
     - "rojo build*"
+    - "rojo serve*"
     - "wally install*"
     - "wally package*"
     - "lune run*"
@@ -384,7 +400,7 @@ The `evidence` field maps validate block ids to brief evidence summaries (e.g., 
 15. Registry rows must match real files exactly (id, filename, title).
 16. Update PRD `## Features` from [INITIALIZED] to [PLANNED].
 17. MVP first: every feature listed in the PRD `## MVP` section must be delivered by lower-numbered specs than any non-MVP feature; record the MVP boundary (last MVP spec id) in Notes.
-18. Store assets enter specs only through an approved decision: every Assets row with `creator-store` or `builtbybit` source must trace to a decision id recorded in its Approval column, and slots without approval fall back to primitives.
+18. Store assets enter specs only through an approved decision: every Assets row with `creator-store` or `builtbybit` source must trace to a decision id recorded in its Approval column, and slots without approval fall back to primitives. Generated `blender-mcp` rows need no decision — their Approval column names the sourcing policy, and each row carries a Generation Brief.
 
 ### Save-Time Checklist
 
@@ -401,7 +417,7 @@ Before returning, verify ALL:
 - [ ] Every Remotes row has all 5 columns including server-side validation
 - [ ] Every Controls row has all 3 columns
 - [ ] Every World row has all 3 columns
-- [ ] Every Assets row has all 4 columns including Approval, and every `creator-store` row traces to a decision id
+- [ ] Every Assets row has all 4 columns including Approval, every `creator-store` or `builtbybit` row traces to a decision id, and every `blender-mcp` row carries a Generation Brief
 - [ ] Every Files row has action|path|description
 - [ ] Every spec with gameplay or UI work has at least one e2e validate of type `e2e`
 - [ ] Registry delivers every PRD `## MVP` feature before any non-MVP spec

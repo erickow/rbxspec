@@ -12,7 +12,7 @@ When asked to /rbxspec.spec, create a Product Requirements Document (PRD) for a 
    - experience metadata: target audience, platforms (PC/Mobile/Console/VR), server size, character support (R6/R15), genre
    - base loop flow (ordered steps across client input → server authority → replication → player feedback)
    - world building when the feature touches the map: terrain approach (handcrafted sculpt vs procedural generation vs flat baseplate), zone/biome list, landmarks for navigation, art direction (theme, palette, lighting mood)
-   - asset sourcing when props, models, or audio are needed: Creator Store / Toolbox assets, BuiltByBit free resources, primitives-built, or mixed; confirm the user understands third-party assets require manual per-asset approval before insertion
+   - asset sourcing when props, models, or audio are needed: Creator Store / Toolbox assets, BuiltByBit free resources, Blender-generated meshes (requires Blender MCP), primitives-built, or mixed; confirm the user understands third-party assets require manual per-asset approval before insertion
    - story detail when narrative exists: premise, tone, dialogue and quest depth, environmental storytelling
    - edge cases and failure modes (cause → expected behavior), including where relevant:
      * network latency, disconnects, and rejoining mid-session
@@ -62,7 +62,7 @@ created: <ISO-8601>
 - Zones: <named zones or biomes with their gameplay purpose>
 - Landmarks: <visible points of interest players navigate by>
 - Art direction: <theme, palette, lighting mood>
-- Asset sourcing: <store-with-approval | primitives-only | mixed>
+- Asset sourcing: <store-with-approval | blender-mcp | primitives-only | mixed>
 
 ## Story
 - Premise: <one-sentence setting and conflict hook>
@@ -136,6 +136,7 @@ Do not use text-based Q1/Q2 formats or ask users to type numbered answers. Use t
 - Design server-authoritative by default: gameplay outcomes are decided on the server, clients only request and display
 - Keep the MVP honest: the `## MVP` slice must be playable end-to-end on its own; everything not listed is post-MVP
 - Third-party Creator Store assets never enter the build silently: the `## World` section names an asset sourcing policy, and every store asset requires per-asset user approval through shared links before it is inserted
+- Blender-generated meshes are opt-in: name them in the sourcing policy (`blender-mcp` or `mixed`) only when the user confirms Blender MCP is connected; they carry no third-party content risk and need no per-asset approval clicks — naming them in the policy is the approval. Quality is enforced by Generation Briefs in the plan
 - Do not write the PRD before questions are answered
 - Do not return a partial PRD after questions are answered
 - Do not save unless all IDs are unique and all sections present
